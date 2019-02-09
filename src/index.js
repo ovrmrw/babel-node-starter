@@ -1,32 +1,50 @@
-const { of, from, timer } = require('rxjs');
-const { scan, concatMap, delay, mapTo } = require('rxjs/operators');
+import readline from 'readline';
+import lodash from 'lodash';
 
-const events = [
-  { ts: 100000, value: 'a' },
-  { ts: 100100, value: 'b' },
-  { ts: 101100, value: 'c' },
-  { ts: 101120, value: 'd' },
-  { ts: 101150, value: 'e' },
-  { ts: 101250, value: 'f' },
-  { ts: 101300, value: 'g' },
-  { ts: 102000, value: 'h' },
-  { ts: 102010, value: 'i' },
-  { ts: 103010, value: 'j' }
-];
+const MAX = 100;
 
-const head = (events.length > 0 && events[0]) || {};
+async function main() {
+  const secretNumber = lodash.random(MAX);
+  // console.log(`The secret number is ${secretNumber}`);
 
-console.time('replay');
-
-from(events)
-  .pipe(
-    scan((p, event) => ({ ...event, diff: event.ts - p.ts }), head),
-    concatMap(event => of(event).pipe(delay(event.diff)))
-  )
-  .subscribe({
-    next: event => console.log(event),
-    complete: () => {
-      console.log('complete');
-      console.timeEnd('replay');
+  while (true) {
+    try {
+      const guess = parseIntSafe(await question(`Guess a number 0 <= n < ${MAX}`));
+      if (guess < secretNumber) {
+        console.log('Too small.');
+      } else if (guess > secretNumber) {
+        console.log('Too big.');
+      } else {
+        console.log('You win!');
+        break;
+      }
+    } catch (e) {
+      console.error(e.message || e);
+      continue;
     }
+  }
+}
+
+main().catch(console.error);
+
+async function question(message) {
+  return new Promise(resolve => {
+    const rl = readline.createInterface({
+      input: process.stdin,
+      output: process.stdout,
+    });
+    rl.question(`${message} \n`, answer => {
+      rl.close();
+      resolve(answer);
+    });
   });
+}
+
+function parseIntSafe(str) {
+  const num = parseInt(str);
+  if (typeof num === 'number' && !isNaN(num)) {
+    return num;
+  } else {
+    throw new Error(`"${str}" is not a number.`);
+  }
+}
